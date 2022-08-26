@@ -1,0 +1,44 @@
+kind: Namespace
+apiVersion: v1
+metadata:
+  name:  demo
+---
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  namespace:  demo
+  name: mastery2022-on-prem-sa
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mastery-gcp-demo
+  namespace:  demo
+spec:
+  serviceAccountName: mastery2022-on-prem-sa
+  containers:
+  - name: my-container
+    image: ghcr.io/kbooth-insight/multicloud-demo:0.0.4
+    env:
+      - name: GOOGLE_APPLICATION_CREDENTIALS
+        value: /var/run/secrets/tokens/gcp-ksa/google-application-credentials.json
+    volumeMounts:
+    - name: gcp-ksa
+      mountPath: /var/run/secrets/tokens/gcp-ksa
+      readOnly: true
+  volumes:
+  - name: gcp-ksa
+    projected:
+      defaultMode: 420
+      sources:
+      - serviceAccountToken:
+          path: token
+          audience: anthos-exploration-356913.svc.id.goog
+          expirationSeconds: 172800
+      - configMap:
+          name: demo-gcloud-config
+          optional: false
+          items:
+            - key: "config"
+              path: "google-application-credentials.json"
